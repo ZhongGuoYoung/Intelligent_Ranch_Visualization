@@ -1,0 +1,360 @@
+.el-popover.el-popper {
+    padding: 8px !important;
+}
+
+.el-checkbox {
+    margin-right: 0 !important;
+}
+
+.my-dialog {
+    &.el-dialog {
+        background: linear-gradient(to right bottom, rgba(35, 118, 183, 0.8), rgba(123, 199, 192, 0.7), rgb(123, 187, 222, 0.8), rgb(181, 216, 238, 0.6));
+        padding: 10px;
+        backdrop-filter: blur(10px);
+    }
+
+    .el-dialog__header {
+        padding: 0;
+
+        &.show-close {
+            padding-right: 0;
+        }
+    }
+
+    .el-dialog__headerbtn {
+        position: absolute;
+        top: 0;
+        right: 0;
+        transform: translate(50%, -50%);
+        background-color: rgba(72, 113, 142, 0.5);
+        box-shadow: 0 0 6px rgba(0, 0, 0, 0.4);
+        width: fit-content;
+        height: fit-content;
+        border-radius: 50%;
+
+        .el-dialog__close {
+            width: 26px;
+            height: 26px;
+            transition: 200ms;
+            background-color: white;
+            mask: url(@/assets/images/close.svg) center/contain no-repeat;
+
+            &:hover {
+                background-color: red;
+            }
+
+            svg {
+                display: none;
+            }
+        }
+    }
+
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+* {
+    margin: 0;
+    padding: 0;
+}
+
+li {
+    list-style: none;
+}
+
+#map-container,
+html,
+body {
+    width: 100%;
+    height: 100%;
+}
+
+#app {
+    width: 100%;
+    height: 100%;
+    margin: 0 auto;
+    text-align: center;
+    color: #000;
+    position: relative;
+}
+
+
+
+.my-marker-popup {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -100%);
+    color: #fff;
+    font-size: 16px;
+    cursor: default;
+    box-shadow: 0 0 5px #fff;
+    background: linear-gradient(135deg, rgb(213, 243, 255), rgb(252, 253, 255, 0.7));
+    backdrop-filter: blur(6px);
+    border-radius: 4px;
+
+    header {
+        height: 36px;
+        border-radius: 4px 4px 0 0;
+        box-shadow: 0 -2px 5px rgba(212, 232, 247, 0.15) inset,
+            0 -1px 1px rgba(212, 232, 247, 0.4) inset, 0 10px 15px rgba(18, 27, 33, 0.2) inset;
+        background: linear-gradient(to right, #3D8FD3, transparent);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        padding-left: 10px;
+
+        &>div:first-child {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            img {
+                width: 25px !important;
+                height: 25px !important;
+            }
+        }
+
+        &>div:nth-child(2) {
+            flex: 1;
+            min-width: max-content;
+            line-height: 1em;
+            color: #fff;
+            font-size: 18px;
+            text-align: left;
+        }
+
+        &>div:last-child {
+            position: relative;
+            align-self: flex-start;
+
+            .close {
+                border-radius: 50%;
+                position: absolute;
+                bottom: 0;
+                right: 0;
+                transform: translate(50%, 50%);
+                cursor: pointer;
+                box-shadow: 0 0 5px #fff;
+                background: rgba(0, 0, 0, 0.3);
+                backdrop-filter: blur(6px) brightness(1.1);
+                padding: 2px;
+                box-sizing: border-box;
+
+                &::after {
+                    content: "";
+                    display: block;
+                    width: 1em;
+                    height: 1em;
+                    background: url(/images/close.svg) center/100% no-repeat;
+                    transition: all 100ms;
+                }
+
+                &:hover::after {
+                    width: 1.2em;
+                    height: 1.2em;
+                }
+            }
+        }
+    }
+
+    main {
+        padding: 8px;
+        margin: 8px;
+        gap: 8px;
+        color: #0f4a6f;
+        font-size: 16px;
+        border: 2px dashed #3D8FD3;
+        border-radius: 6px;
+        display: flex;
+        flex-direction: column;
+
+        .img-box {
+            width: 400px;
+            height: 300px;
+            background-color: rgba(0, 0, 0, 0.1);
+
+            img {
+                object-fit: contain;
+                width: 100%;
+                height: 100%;
+            }
+        }
+
+        .info-box {
+            display: grid;
+            grid-template-columns: max-content max-content;
+
+            label {
+                text-align: right;
+            }
+
+            span {
+                text-align: left;
+                max-width: 500px;
+            }
+        }
+
+        /* div {
+            width: max-content;
+            display: flex;
+            align-items: center;
+        }
+
+        input[type="checkbox"] {
+            width: 1em;
+            height: 1em;
+            cursor: pointer;
+        } */
+    }
+
+    &:after {
+        background: rgb(213, 243, 255, 0.7);
+        border-right: 1px solid rgba(255, 255, 255, 0.6);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.6);
+        backdrop-filter: blur(6px) brightness(1.1);
+        content: "";
+        clip-path: polygon(100% 0%, 0% 100%, 100% 100%);
+        width: 16px;
+        height: 16px;
+        position: absolute;
+        bottom: 0;
+        left: 50%;
+        transform: translate(-50%, 49%) rotate(45deg);
+        border-bottom-right-radius: 4px;
+    }
+}
+
+.my-marker {
+    --icon-width: 2.5em;
+    --icon-height: 2.5em;
+    width: var(--icon-width);
+    height: var(--icon-height);
+    transform: translate(-50%, -100%);
+    position: relative;
+    color: #000;
+    font-size: 16px;
+    font-weight: bold !important;
+    line-height: 1.5em;
+    text-shadow: #fff 1px 0 0, #fff 0 1px 0, #fff -1px 0 0, #fff 0 -1px 0;
+
+    .icon {
+        position: relative;
+        z-index: 1;
+        width: 100%;
+        height: 100%;
+
+        svg,
+        img {
+            width: 100%;
+            height: 100%;
+        }
+    }
+
+    .shade {
+        position: absolute;
+        z-index: 0;
+        width: 100%;
+        height: 100%;
+        inset: 0;
+
+        .name,
+        .val {
+            position: absolute;
+            width: max-content;
+            display: block;
+            scale: 0;
+            opacity: 0;
+            left: 50%;
+            transition: 200ms;
+            transform: translate(-50%, 0);
+            transform-origin: left center;
+        }
+
+        .val {
+            top: 0;
+        }
+
+        .name {
+            bottom: 0;
+        }
+
+
+    }
+
+    .icon:hover+.shade {
+        .val {
+            scale: 1;
+            opacity: 1;
+            transform: translate(-50%, -100%);
+        }
+
+        .name {
+            scale: 1;
+            opacity: 1;
+            transform: translate(-50%, 100%);
+        }
+    }
+
+    &.show-value .shade .val {
+        opacity: 1;
+        scale: 1;
+        transform: translate(-50%, -100%);
+    }
+
+    &.show-name .shade .name {
+        opacity: 1;
+        scale: 1;
+        transform: translate(-50%, 100%);
+    }
+}
+
+.my-marker-label {
+    box-shadow: 0 0 4px #fff;
+    background-color: rgb(0, 0, 0, 0.4);
+    backdrop-filter: blur(5px);
+    padding: 8px;
+    border-radius: 9999px;
+    width: max-content;
+    font-size: 14px;
+    line-height: 1em;
+    transform: translate(-50%, -50%);
+}
+
+.warning-box {
+    display: flex;
+    flex-direction: column;
+
+    .warning-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+
+        img {
+            width: 50px;
+            height: 50px;
+        }
+
+        div {
+            width: 200px;
+            text-align: left;
+        }
+    }
+}

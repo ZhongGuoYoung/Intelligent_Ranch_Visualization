@@ -1,0 +1,32 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: mlmserver
+  servlet:
+    multipart:
+      max-file-size: -1        # 上传单个文件的最大值。（-1：无限制）
+      max-request-size: -1        # 上传 request 请求最大值。（-1：无限制）
+  # 连接数据库
+  datasource:
+    url: jdbc:mysql://localhost:3306/mlm_db?useUnicode=true&&characterEncoding=utf-8
+    username: root
+    password: 123456
+    driverClassName: com.mysql.cj.jdbc.Driver
+  # 自定义banner
+  banner:
+    location: classpath:static/banner.txt
+
+mybatis:
+  config-location: classpath:mybatis/mybatis-config.xml
+  mapper-locations: classpath:mybatis/mapper/*.xml
+  type-aliases-package: com.njcx.mlmserver.entity
+
+custom:
+  path:
+    #    word : D:/项目/芗城/xiangcheng/public/word/    # 保存文档
+    word: D:/新建文件夹 (2)/zhmcweb/public/word/
+
+
+

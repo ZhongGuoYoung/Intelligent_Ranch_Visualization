@@ -1,0 +1,54 @@
+<?xml version="1.0" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg t="1747805417585" class="icon" viewBox="0 0 1024 1024" version="1.1"
+    xmlns="http://www.w3.org/2000/svg" p-id="12797" xmlns:xlink="http://www.w3.org/1999/xlink"
+    width="32" height="32">
+    <rect x="0" y="0" width="1024" height="1024" fill="#FFF" fill-opacity="1" />
+    <!-- <circle cx="512" cy="420" r="390" fill="#fff"  /> -->
+    <!-- <path
+        d="M 225.12 708.745 L 512 994 L 798.88 708.745 A 400 400 0 0 1 225.12 708.745 A 400 400 0 1 1
+    798.88 708.745 A 400 400 0 1 0 225.12 708.745 z"
+        stroke-linejoin="round" fill="#196cd5" stroke="#196cd5" stroke-width="60"
+        data-msg="半径400的边框"></path> -->
+    <!-- <path
+        d="M 227.2 661.5679 L 512 994 L 796.8 661.5679 A 380 380 0 0 1 227.2 661.5679 A 380 380 0 1 1 796.8
+    661.5679 A 380 380 0 1 0 227.2 661.5679 z"
+        stroke-linejoin="round" fill="#196cd5" stroke="#196cd5" stroke-width="60"
+        data-msg="半径380的边框"></path> -->
+    <!-- <path
+        d="
+		M 225.85 684.98
+		L 512 994
+        L 798.15 684.98
+        A 390 390 0 0 1 225.85 684.98
+        A 390 390 0 1 1 798.15 684.98
+        A 390 390 0 1 0 225.85 684.98
+        z
+        "
+        stroke-linejoin="round" fill="#196cd5" stroke="#196cd5"
+        stroke-width="60"
+        data-msg="半径390的边框"></path> -->
+
+<circle cx="512"
+                cy="512"
+                r="460"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="80"
+                stroke-dasharray="200% 40% 60 30%"
+                stroke-linecap="round" />
+        <line x1="320"
+              y1="320"
+              x2="704"
+              y2="704"
+              stroke="currentColor"
+              stroke-width="60"
+              stroke-linecap="round" />
+        <line x1="320"
+              y1="704"
+              x2="704"
+              y2="310"
+              stroke="currentColor"
+              stroke-width="60"
+              stroke-linecap="round" />
+</svg>

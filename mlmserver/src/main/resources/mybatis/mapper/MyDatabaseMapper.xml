@@ -1,0 +1,391 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mlm.mlmserver.dao.MyDatabaseDao">
+    <select id="selectSql" resultType="JSONObject">${sql}</select>
+    <insert id="insertSql">${sql}</insert>
+    <update id="updateSql">${sql}</update>
+    <delete id="deleteSql">${sql}</delete>
+    <select id="login" resultType="JSONObject">
+        select ${elements}
+        from ${table}
+        where
+        binary username = #{username, jdbcType=VARCHAR}
+        and
+        binary password = #{password, jdbcType=VARCHAR}
+    </select>
+
+    <sql id="myTypeChoose">
+        <choose>
+            <when test="type == ''"></when>
+            <when test="type == 'eq'">
+                <if test="binary">binary</if>
+                ${field} = #{value}
+            </when>
+            <when test="type == 'nq'">
+                <if test="binary">binary</if>
+                ${field} != #{value}
+            </when>
+            <when test="type == 'gt'">
+                <if test="binary">binary</if>
+                ${field} &gt; #{value}
+            </when>
+            <when test="type == 'ge'">
+                <if test="binary">binary</if>
+                ${field} &gt;= #{value}
+            </when>
+            <when test="type == 'le'">
+                <if test="binary">binary</if>
+                ${field} &lt;= #{value}
+            </when>
+            <when test="type == 'lt'">
+                <if test="binary">binary</if>
+                ${field} &lt; #{value}
+            </when>
+            <when test="type == 'null'">
+                <if test="binary">binary</if>
+                ${field} is null
+            </when>
+            <when test="type == 'notNull'">
+                <if test="binary">binary</if>
+                ${field} is not null
+            </when>
+            <when test="type == 'between'">
+                <if test="binary">binary</if>
+                ${field} between #{leftValue} and #{rightValue}
+            </when>
+            <when test="type == 'notBetween'">
+                <if test="binary">binary</if>
+                ${field} not between #{leftValue} and #{rightValue}
+            </when>
+            <when test="type == 'betweenLeft'">
+                <if test="binary">binary</if>
+                ${field} &gt;= #{leftValue}
+                and
+                <if test="binary">binary</if>
+                ${field} &lt; #{rightValue}
+            </when>
+            <when test="type == 'notBetweenLeft'">
+                <if test="binary">binary</if>
+                ${field} &lt; #{leftValue}
+                or
+                <if test="binary">binary</if>
+                ${field} &gt;= #{rightValue}
+            </when>
+            <when test="type == 'betweenRight'">
+                <if test="binary">binary</if>
+                ${field} &gt; #{leftValue}
+                and
+                <if test="binary">binary</if>
+                ${field} &lt;= #{rightValue}
+            </when>
+            <when test="type == 'notBetweenRight'">
+                <if test="binary">binary</if>
+                ${field} &lt;= #{leftValue}
+                or
+                <if test="binary">binary</if>
+                ${field} &gt; #{rightValue}
+            </when>
+            <when test="type == 'in'">
+                <if test="binary">binary</if>
+                ${field} in
+                <foreach collection="values" item="v" index="index" open="(" close=")" separator=",">#{v}</foreach>
+            </when>
+            <when test="type == 'notIn'">
+                <if test="binary">binary</if>
+                ${field} not in
+                <foreach collection="values" item="v" index="index" open="(" close=")" separator=",">#{v}</foreach>
+            </when>
+            <when test="type == 'like'">
+                <if test="binary">binary</if>
+                ${field} like CONCAT('%', #{value}, '%')
+            </when>
+            <when test="type == 'notLike'">
+                <if test="binary">binary</if>
+                ${field} not like CONCAT('%', #{value}, '%')
+            </when>
+            <when test="type == 'likeLeft'">
+                <if test="binary">binary</if>
+                ${field} like CONCAT('%', #{value})
+            </when>
+            <when test="type == 'notLikeLeft'">
+                <if test="binary">binary</if>
+                ${field} not like CONCAT('%', #{value})
+            </when>
+            <when test="type == 'likeRight'">
+                <if test="binary">binary</if>
+                ${field} like CONCAT(#{value}, '%')
+            </when>
+            <when test="type == 'notLikeRight'">
+                <if test="binary">binary</if>
+                ${field} not like CONCAT(#{value}, '%')
+            </when>
+            <otherwise>${type} 无法识别</otherwise>
+        </choose>
+    </sql>
+
+    <sql id="myTypeChooseItem">
+        <choose>
+            <when test="type == ''"></when>
+            <when test="type == 'eq'">
+                <if test="binary">binary</if>
+                ${field} = #{item.value}
+            </when>
+            <when test="type == 'nq'">
+                <if test="binary">binary</if>
+                ${field} != #{item.value}
+            </when>
+            <when test="type == 'gt'">
+                <if test="binary">binary</if>
+                ${field} &gt; #{item.value}
+            </when>
+            <when test="type == 'ge'">
+                <if test="binary">binary</if>
+                ${field} &gt;= #{item.value}
+            </when>
+            <when test="type == 'le'">
+                <if test="binary">binary</if>
+                ${field} &lt;= #{item.value}
+            </when>
+            <when test="type == 'lt'">
+                <if test="binary">binary</if>
+                ${field} &lt; #{item.value}
+            </when>
+            <when test="type == 'null'">
+                <if test="binary">binary</if>
+                ${field} is null
+            </when>
+            <when test="type == 'notNull'">
+                <if test="binary">binary</if>
+                ${field} is not null
+            </when>
+            <when test="type == 'between'">
+                <if test="binary">binary</if>
+                ${field} between #{item.leftValue} and #{item.rightValue}
+            </when>
+            <when test="type == 'notBetween'">
+                <if test="binary">binary</if>
+                ${field} not between #{item.leftValue} and #{item.rightValue}
+            </when>
+            <when test="type == 'betweenLeft'">
+                <if test="binary">binary</if>
+                ${field} &gt;= #{item.leftValue}
+                and
+                <if test="binary">binary</if>
+                ${field} &lt; #{item.rightValue}
+            </when>
+            <when test="type == 'notBetweenLeft'">
+                <if test="binary">binary</if>
+                ${field} &lt; #{item.leftValue}
+                or
+                <if test="binary">binary</if>
+                ${field} &gt;= #{item.rightValue}
+            </when>
+            <when test="type == 'betweenRight'">
+                <if test="binary">binary</if>
+                ${field} &gt; #{item.leftValue}
+                and
+                <if test="binary">binary</if>
+                ${field} &lt;= #{item.rightValue}
+            </when>
+            <when test="type == 'notBetweenRight'">
+                <if test="binary">binary</if>
+                ${field} &lt;= #{item.leftValue}
+                or
+                <if test="binary">binary</if>
+                ${field} &gt; #{item.rightValue}
+            </when>
+            <when test="type == 'in'">
+                <if test="binary">binary</if>
+                ${field} in
+                <foreach collection="values" item="v" index="index" open="(" close=")" separator=",">#{v}</foreach>
+            </when>
+            <when test="type == 'notIn'">
+                <if test="binary">binary</if>
+                ${field} not in
+                <foreach collection="values" item="v" index="index" open="(" close=")" separator=",">#{v}</foreach>
+            </when>
+            <when test="type == 'like'">
+                <if test="binary">binary</if>
+                ${field} like CONCAT('%', #{item.value}, '%')
+            </when>
+            <when test="type == 'notLike'">
+                <if test="binary">binary</if>
+                ${field} not like CONCAT('%', #{item.value}, '%')
+            </when>
+            <when test="type == 'likeLeft'">
+                <if test="binary">binary</if>
+                ${field} like CONCAT('%', #{item.value})
+            </when>
+            <when test="type == 'notLikeLeft'">
+                <if test="binary">binary</if>
+                ${field} not like CONCAT('%', #{item.value})
+            </when>
+            <when test="type == 'likeRight'">
+                <if test="binary">binary</if>
+                ${field} like CONCAT(#{item.value}, '%')
+            </when>
+            <when test="type == 'notLikeRight'">
+                <if test="binary">binary</if>
+                ${field} not like CONCAT(#{item.value}, '%')
+            </when>
+            <otherwise>${type} 无法识别</otherwise>
+        </choose>
+    </sql>
+
+    <!-- 查询 -->
+    <select id="select" resultType="JSONObject">
+        select ${elements}
+        from ${table}
+        <where>
+            <include refid="myTypeChoose"></include>
+        </where>
+        <if test="order != null and order != ''">order by ${order}</if>
+        <if test="offset != null and count != null">limit #{offset},#{count}</if>
+    </select>
+    <select id="selectByCollection" resultType="JSONObject">
+        select ${elements}
+        from ${table}
+        <where>
+            <foreach collection="collection" item="item" index="index">
+                <bind name="connector" value="item.getString('connector')"/>
+                <bind name="binary" value="item.getBooleanValue('binary')"/>
+                <bind name="field" value="item.getString('field')"/>
+                <bind name="type" value="item.getString('type')"/>
+                <bind name="value" value="item.getString('value')"/>
+                <bind name="values" value="item.getJSONArray('values')"/>
+                <bind name="leftValue" value="item.getString('leftValue')"/>
+                <bind name="rightValue" value="item.getString('rightValue')"/>
+                <bind name="reverse" value="item.getBooleanValue('reverse')"/>
+                ${connector}
+                <include refid="myTypeChooseItem"></include>
+            </foreach>
+        </where>
+        <if test="order != null and order != ''">order by ${order}</if>
+        <if test="offset != null and count != null">limit #{offset},#{count}</if>
+    </select>
+
+    <select id="selectCountByCollection" resultType="int">
+        select count(1)
+        from ${table}
+        <where>
+            <foreach collection="collection" item="item" index="index">
+                <bind name="connector" value="item.getString('connector')"/>
+                <bind name="binary" value="item.getBooleanValue('binary')"/>
+                <bind name="field" value="item.getString('field')"/>
+                <bind name="type" value="item.getString('type')"/>
+                <bind name="value" value="item.getString('value')"/>
+                <bind name="values" value="item.getJSONArray('values')"/>
+                <bind name="leftValue" value="item.getString('leftValue')"/>
+                <bind name="rightValue" value="item.getString('rightValue')"/>
+                <bind name="reverse" value="item.getBooleanValue('reverse')"/>
+                ${connector}
+                <include refid="myTypeChooseItem"></include>
+            </foreach>
+        </where>
+    </select>
+
+    <!-- 删除 -->
+    <delete id="delete">
+        delete from ${table}
+        <where>
+            <include refid="myTypeChoose"></include>
+        </where>
+    </delete>
+    <delete id="deleteByWhere">
+        delete from ${table}
+        <where>
+            <foreach collection="collection" item="item" index="index">
+                <bind name="connector" value="item.getString('connector')"/>
+                <bind name="binary" value="item.getBooleanValue('binary')"/>
+                <bind name="field" value="item.getString('field')"/>
+                <bind name="type" value="item.getString('type')"/>
+                <bind name="value" value="item.getString('value')"/>
+                <bind name="values" value="item.getJSONArray('values')"/>
+                <bind name="leftValue" value="item.getString('leftValue')"/>
+                <bind name="rightValue" value="item.getString('rightValue')"/>
+                <bind name="reverse" value="item.getBooleanValue('reverse')"/>
+                ${connector}
+                <include refid="myTypeChooseItem"></include>
+            </foreach>
+        </where>
+    </delete>
+
+    <!-- 添加 -->
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        insert ignore into ${table}
+        <foreach collection="elements" item="element" index="index" open="(" close=")" separator=",">
+            ${element}
+        </foreach>
+        <foreach collection="elementsValue" item="item" index="index" open="values (" close=")" separator=",">
+            #{item, jdbcType=VARCHAR}
+        </foreach>
+    </insert>
+    <!-- 批量添加 -->
+    <insert id="insertBatch">
+        insert ignore into ${table}
+        <foreach collection="elements" item="element" index="index" open="(" close=")" separator=",">
+            ${element}
+        </foreach>
+        <foreach collection="collection" item="item" index="index" open="values" close="" separator=",">
+            <foreach collection="elements" item="element" index="index" open="(" close=")" separator=",">
+                #{item.${element}, jdbcType=VARCHAR}
+            </foreach>
+        </foreach>
+    </insert>
+
+    <!-- 更新 -->
+    <update id="update">
+        update ${table}
+        <set>
+            <foreach collection="collection" item="item" index="index" open="" close="" separator=",">
+                ${item.key} = #{item.val, jdbcType=VARCHAR}
+            </foreach>
+        </set>
+        <where>
+            ${field} = #{value, jdbcType=VARCHAR}
+        </where>
+    </update>
+
+
+    <!-- 添加记录。当字段没有唯一约束，但需要唯一插入时，用此方法，但此方法没法批量插入
+	<insert id="insert" useGeneratedKeys="true" keyProperty="id">
+      	insert into ${table} (${fields})
+		<choose>
+			<when test="uniqueField == null or uniqueField == ''">
+				<foreach collection="values" item="item" index="index" open="values(" close=")" separator=",">
+					#{item, jdbcType=VARCHAR}
+				</foreach>
+			</when>
+      		<otherwise>
+      			<foreach collection="values" item="item" index="index" open="select" close="from dual" separator=",">
+      				#{item, jdbcType=VARCHAR}
+      			</foreach>
+				<where>
+					not exists ( select 1 from ${table} where binary ${uniqueField} = #{uniqueValue} )
+				</where>
+      		</otherwise>
+	 	</choose>
+    </insert>
+    -->
+    <!-- 更新记录。当字段没有唯一约束，但需要唯一更新时，用此方法
+    <update id="update">
+       update ${table}
+       <set>
+           <foreach collection="childs" item="item" index="index" open="" close="" separator=",">
+             ${item.key} = #{item.value, jdbcType=VARCHAR}
+         </foreach>
+       </set>
+       <where>
+           ${field} = #{value, jdbcType=VARCHAR}
+           <if test="uniqueField != null and uniqueField !=''">
+               and not exists (
+                   select 1 from (
+                       select 1 from ${table} where binary ${uniqueField} = #{uniqueValue} and binary ${field} != #{value}
+                   ) as temporaryUniqueTable
+               )
+           </if>
+       </where>
+    </update>
+    -->
+
+</mapper>
