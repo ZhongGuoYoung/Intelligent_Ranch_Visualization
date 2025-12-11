@@ -87,6 +87,7 @@ import 'leaflet/dist/leaflet.css'
 import MapInfoBar from '@/components/my-map-info-bar/MapInfoBar.vue'
 import ZiDongZhan from '@/assets/GeographicData/自动站.json'
 import PIN_PNG from '@/static/icons/location.png'
+import PIN_ACTIVE_PNG from '@/static/icons/pin2.png'
 import coreStationsData from '@/assets/data/mainmc.json'
 import extraStationsData from '@/assets/data/nxmc.json'
 
@@ -100,20 +101,24 @@ const active = computed(() => coreStations.value.find(s => s.id === activeId.val
 const refmap = shallowRef(null)
 let map = null
 const PIN_URL = PIN_PNG
+const PIN_ACTIVE_URL = PIN_ACTIVE_PNG
 const coreMarkerMap = new Map()
 const extraMarkerMap = new Map()
 const markerMap = new Map()
 let initialView = null
 
 // 统一的图钉工厂
-function makePin(size = [44, 44]) {
+function makePin(url = PIN_URL, size = [44, 44]) {
   return L.icon({
-    iconUrl: PIN_URL,
+    iconUrl: url,
     iconSize: size,
     iconAnchor: [size[0] / 2, size[1] - 4],
     className: 'png-pin'
   })
 }
+
+const defaultPinIcon = makePin(PIN_URL, [48, 48])
+const activePinIcon = makePin(PIN_ACTIVE_URL, [52, 52])
 onMounted(() => {
   refmap.value = map = L.map('map-container', {
     center: [37.50, 106.30],
@@ -142,13 +147,14 @@ function addCoreMarkers() {
   clearCoreMarkers()
   coreStations.value.forEach((s) => {
     const m = L.marker([s.lat, s.lon], {
-      icon: makePin([48, 48]),
+      icon: defaultPinIcon,
       riseOnHover: true
     })
     m.on('click', () => selectStation(s.id, 'map'))
     m.addTo(map)
     coreMarkerMap.set(s.id, m)
   })
+  syncCoreMarkerIcons()
 }
 function clearCoreMarkers() {
   coreMarkerMap.forEach(m => m.remove())
@@ -188,21 +194,21 @@ function clearExtraMarkers() {
   extraMarkerMap.clear()
 }
 
-// —— 选择核心 3 个站点之一：只保留被选中的图钉，另外两枚关闭（隐藏）
+// —— 选择核心 3 个站点之一：保持三枚图钉常显，选中的切换样式
 function selectStation(id, from) {
   if (activeId.value !== id) activeId.value = id
-  coreMarkerMap.forEach((m, sid) => {
-    if (sid !== id) {
-      // 关闭其他两个
-      if (map.hasLayer(m)) m.remove()
-    } else {
-      // 选中的保持显示并置顶
-      if (!map.hasLayer(m)) m.addTo(map)
-      m.setZIndexOffset(1000)
-    }
-  })
+  syncCoreMarkerIcons()
   // 是否飞行到该站点
   // flyToStation(active.value)
+}
+
+function syncCoreMarkerIcons() {
+  coreMarkerMap.forEach((m, sid) => {
+    const isActive = sid === activeId.value
+    m.setIcon(isActive ? activePinIcon : defaultPinIcon)
+    m.setZIndexOffset(isActive ? 1000 : 0)
+    if (!map.hasLayer(m)) m.addTo(map)
+  })
 }
 
 
@@ -253,7 +259,10 @@ function fitAll() {
 
 
 // —— 响应式：活动站点变化时刷新 marker 样式
-watch(activeId, () => refreshMarkerStyles())
+watch(activeId, () => {
+  refreshMarkerStyles()
+  syncCoreMarkerIcons()
+})
 </script>
 <style scoped lang="scss">
 /* 页面整体留出顶部导航高度，避免遮挡 */

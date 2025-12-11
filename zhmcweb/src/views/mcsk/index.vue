@@ -181,6 +181,12 @@
   --dx: 0.5px;
   --dy: -23px;
 }
+.tl-panel .fun-box .main span[title="湿度"] {
+  --oval-size: 95px;
+  --sy: 1.2;
+  --dx: 0.5px;
+  --dy: -20px;
+}
 .tl-panel .fun-box .main span[title="示范点"] {
   --oval-size: 93px;
   --sy: 1.3;
@@ -516,7 +522,7 @@
   <div class="fun-box">
     <div class="header">气象要素</div>
     <div class="main">
-  <span v-for="item in ['降水','气温','风','能见度','日照']"
+  <span v-for="item in ['降水','气温','风','能见度','日照','湿度']"
         :key="item"
         :class="{ active: metElement == item }"
         @click="handleMetElement(item)"
@@ -640,6 +646,13 @@
             choose="风"
             :filter="winFilterRange"
             :filterChange="winFilterChange" />
+    <Legend v-if="showRHULegend"
+            name="湿度"
+            unit="(%)"
+            :color="rhuLegendColor"
+            :level="[20, 40, 60, 70, 80, 90]"
+            :filter="rhuFilterRange"
+            :filterChange="rhuFilterChange" />
   </div>
 </template>
 
@@ -670,6 +683,7 @@ import thermo from '@/static/icons/thermo.png'
 import eye    from '@/static/icons/eye.png'
 import sun from '@/static/icons/sun.png'
 import wind from '@/static/icons/wind.png'
+import rhu from '@/static/icons/shidu.png'
 import demo from '@/static/icons/demo.png'
 import ranch from '@/static/icons/ranch.png'
 import tower from '@/static/icons/tower.png'
@@ -684,6 +698,7 @@ const ICONS = {
   '风': wind,
   '能见度': eye,
   '日照': sun,
+  '湿度': rhu,
   // 站点
   '示范点': demo,
   '牧场': ranch,
@@ -718,10 +733,13 @@ let refmap = shallowRef(null),
     showWinFieldLayer = ref(false),     // 是否显示风场图层
     showPreLegend = computed(() => (showStationLayer.value || showGridLayer.value) && metElement.value == "降水"),// 是否显示降水图例
     showTemLegend = computed(() => (showStationLayer.value || showGridLayer.value) && metElement.value == "气温"),// 是否显示气温图例
+    showRHULegend = computed(() => (showStationLayer.value || showGridLayer.value) && metElement.value == "湿度"),// 是否显示降水图例
     showWinLegend = computed(() => (showStationLayer.value || showGridLayer.value || showWinFieldLayer.value) && metElement.value == "风"),// 是否显示大风图例
     preFilterRange = [0, 7],            // 降水图例过滤范围
     temFilterRange = [0, 19],           // 气温图例过滤范围
     winFilterRange = [0, 13],           // 大风图例过滤范围
+    rhuLegendColor = ["#f8696b", "#fdae61", "#ffdd71", "#a6d96a", "#66bd63", "#2b83ba", "#2166ac"],
+    rhuFilterRange =  [0, rhuLegendColor.length],          //湿度
     showStaTC = ref(false),             // 是否显示单个站点的时序图
     staTCConfig = ref({}),              // 单个站点时序图配置
     staTCData = ref([]),                // 单个站点时序图数据
@@ -733,7 +751,7 @@ let refmap = shallowRef(null),
     GLOBAL_CACHE = {};
 
 let selectTime = ref(dayjs().set("hour", 8).set("minute", 0).set("second", 0));// 时间条上的时间
-selectTime.value = dayjs("2025-12-03 16:00:00")
+selectTime.value = dayjs("2025-12-04 08:00:00")
 let timeBarPointChecked = ref(23),      // 时间条上被选中的时间点，起始为 0
     timeBarConfig = ref({               // 时间条配置
         bar: "时",
@@ -762,7 +780,9 @@ let timeBarPointChecked = ref(23),      // 时间条上被选中的时间点，�
             step: 1,
             pointChecked: 7,
         };
+        if (showStatisticalLayer.value) getStationsDataByTimeRange()
     };
+
 // 时间条上的时间点的点击事件
 function timeBarPoint(obj) {
 
@@ -772,6 +792,7 @@ function timeBarPoint(obj) {
     if (metElement.value == "气温") getTemStationData()
     if (metElement.value == "风") getWinStationData()
     if (metElement.value == "能见度") getVisStationData()
+    if (metElement.value == "湿度") getRHUStationData()
 
     if (showGridLayer.value) loadGridJsonAndRender()
   }
@@ -800,6 +821,7 @@ const
     preLegendColor = ["#ffffff", "#a3f28f", "#3dba3d", "#61b8ff", "#0500e1", "#fa00fa"],
     winLegendColor = ["#ffffff", "#9bbce8", "#6b9de1", "#3b7edb", "#2b5cc2", "#049122", "#edca0a", "#fe9900", "#fe7500", "#fe5500", "#fe2a00", "#fa0025", "#f00087"],
     temLegendColor = ["#800080", "#00309e", "#185ab4", "#2073dc", "#41a0e6", "#72d2fa", "#96e2f0", "#befaff", "#f0faff", "#dcffd5", "#c0feb3", "#b4ff82", "#fafa8f", "#fff2c0", "#ffdfb0", "#ffae76", "#ff878a", "#ff5600", "#8f0814"],
+
     preLegendType = computed(() => {
         let hour = timeBarConfig.value.bar == "时" ? 1 : 24;
         return hour <= 1 ? 1 :
@@ -857,6 +879,15 @@ const
         { id: 16, color: temLegendColor[16], threshold: 28 },
         { id: 17, color: temLegendColor[17], threshold: 32 },
         { id: 18, color: temLegendColor[18], threshold: 35 },
+    ]),
+    rhuThreshold = ref([
+        { id: 0, color: rhuLegendColor[0], threshold: 20, name: "0-20" },
+        { id: 1, color: rhuLegendColor[1], threshold: 40, name: "20-40" },
+        { id: 2, color: rhuLegendColor[2], threshold: 60, name: "40-60" },
+        { id: 3, color: rhuLegendColor[3], threshold: 70, name: "60-70" },
+        { id: 4, color: rhuLegendColor[4], threshold: 80, name: "70-80" },
+        { id: 5, color: rhuLegendColor[5], threshold: 90, name: "80-90" },
+        { id: 6, color: rhuLegendColor[6], threshold: Infinity, name: ">=90" },
     ]);
 function getPreThreshold(value) {
     return value == "--"
@@ -902,9 +933,19 @@ function getTemThreshold(value) {
                                                         value < temThreshold.value[13].threshold ? temThreshold.value[12] :
                                                             value < temThreshold.value[14].threshold ? temThreshold.value[13] :
                                                                 value < temThreshold.value[15].threshold ? temThreshold.value[14] :
-                                                                    value < temThreshold.value[16].threshold ? temThreshold.value[15] :
-                                                                        value < temThreshold.value[17].threshold ? temThreshold.value[16] :
-                                                                            value < temThreshold.value[18].threshold ? temThreshold.value[17] : temThreshold.value[18];
+            value < temThreshold.value[16].threshold ? temThreshold.value[15] :
+                value < temThreshold.value[17].threshold ? temThreshold.value[16] :
+                    value < temThreshold.value[18].threshold ? temThreshold.value[17] : temThreshold.value[18];
+}
+function getRHUThreshold(value) {
+    return value == "--"
+        ? { id: -1, color: "#000", threshold: "--", name: "异常值" }
+        : value < rhuThreshold.value[0].threshold ? rhuThreshold.value[0] :
+            value < rhuThreshold.value[1].threshold ? rhuThreshold.value[1] :
+                value < rhuThreshold.value[2].threshold ? rhuThreshold.value[2] :
+                    value < rhuThreshold.value[3].threshold ? rhuThreshold.value[3] :
+                        value < rhuThreshold.value[4].threshold ? rhuThreshold.value[4] :
+                            value < rhuThreshold.value[5].threshold ? rhuThreshold.value[5] : rhuThreshold.value[6];
 }
 
 onMounted(() => {
@@ -943,6 +984,12 @@ function winFilterChange(data) {
     if (showGridLayer.value) { renderGridLayer(GLOBAL_CACHE.curGridData); }
 }
 
+function rhuFilterChange(data) {
+    rhuFilterRange = data;
+    if (showStationLayer.value) { renderStationLayer(GLOBAL_CACHE.curStationData); }
+    if (showGridLayer.value) { renderGridLayer(GLOBAL_CACHE.curGridData); }
+}
+
 // ---------- 切换气象要素 ----------
 function handleMetElement(data) {
   if (metElement.value != data) {
@@ -959,6 +1006,7 @@ function handleMetElement(data) {
       if (data == "气温") getTemStationData()
       if (data == "风") getWinStationData()
       if (data == "能见度") getVisStationData()
+      if (data == "湿度") getRHUStationData()
     }
   }
 }
@@ -978,6 +1026,7 @@ function handleStationLayer() {
         if (metElement.value == "气温") getTemStationData();
         if (metElement.value == "风") getWinStationData();
         if (metElement.value === "能见度") getVisStationData();
+        if (metElement.value == "湿度") getRHUStationData()
     } else {
         removeLayerById("current-station-layer");
     }
@@ -998,62 +1047,89 @@ function gridDirByElement(ele) {
   if (ele === "气温") return "tem"
   if (ele === "降水") return "pre"
   if (ele === "风") return "win"
+  if (ele === "湿度") return "rhu"
   // 其他要素先不给
   return null
 }
 
-const gridCache = new Map()
 
-function gridUrlByMoment(m) {
-  const t14 = m.format("YYYYMMDDHHmmss")
-  const dir = gridDirByElement(metElement.value) // tem/pre/win
-  if (!dir) return null
-
-  const base = import.meta.env.BASE_URL || "/"
-  return `${base}public/data/${dir}/${t14}.json`
-}
 
 function clearGridLayer() {
   removeLayerById("current-grid-layer")
 }
 
+function gridUrlCandidatesByMoment(m) {
+  const dir = gridDirByElement(metElement.value)
+  if (!dir) return []
+
+  const base = import.meta.env.BASE_URL || "/"
+  const isHour = timeBarConfig.value.bar === "时"
+  const t14 = m.format("YYYYMMDDHHmmss")
+  const folder = isHour ? "hour" : "day"
+
+  return [
+    `${base}data/${folder}/${dir}/${t14}.json`,
+    `${base}public/data/${folder}/${dir}/${t14}.json`,
+  ]
+}
+
+
 async function loadGridJsonAndRender() {
   if (!showGridLayer.value) return
 
   const m = getSelectedMoment()
-  const url = gridUrlByMoment(m)
-  if (!url) return
+  const urls = gridUrlCandidatesByMoment(m)
+  if (!urls.length) return
 
-  try {
-    const res = await axios.get(url, {
-      responseType: "json",
-      // 防止缓存导致你以为存在/不存在不准
-      headers: { "Cache-Control": "no-cache" },
-      validateStatus: s => s >= 200 && s < 300
-    })
+  clearGridLayer()
 
-    //防止“200 但返回的其实是 index.html/字符串”
-    if (!res.data || typeof res.data !== "object" || !Array.isArray(res.data.DS)) {
-      clearGridLayer()
-      ElMessage.warning(`网格数据格式不对：${url}`)
-      return
+  let res = null
+  let okUrl = null
+
+  // ✅ 逐个尝试 URL，避免命中 index.html
+  for (const url of urls) {
+    try {
+      const r = await axios.get(url, {
+        responseType: "json",
+        headers: { "Cache-Control": "no-cache" },
+        validateStatus: s => s >= 200 && s < 300
+      })
+      // 如果拿到的是字符串（比如 index.html），直接跳过继续试下一个
+      if (!r.data || typeof r.data !== "object") continue
+
+      res = r
+      okUrl = url
+      break
+    } catch (e) {
+      // 继续试下一个
     }
-
-    GLOBAL_CACHE.curGridData = res.data
-    renderGridLayer(res.data)
-  } catch (err) {
-    clearGridLayer()
-
-    const status = err?.response?.status
-    if (status === 404) {
-      ElMessage.warning(`未找到网格文件：${metElement.value} ${m.format("YYYY-MM-DD HH时")}`)
-    } else {
-      ElMessage.error(`加载网格失败：${status ?? "网络错误"}`)
-    }
-
-    console.error("[GridJSON] load failed:", url, err)
   }
+
+  if (!res) {
+    const tip = (timeBarConfig.value.bar === "时")
+      ? m.format("YYYY-MM-DD HH时")
+      : m.format("YYYY-MM-DD")
+    ElMessage.warning(`未找到网格文件：${metElement.value} ${tip}`)
+    return
+  }
+
+  const data = res.data
+
+  // ✅ 兼容：普通要素 DS；风要素 U/V
+  const hasDS = Array.isArray(data?.DS)
+  const isWindUV = (metElement.value === "风") && Array.isArray(data?.U) && Array.isArray(data?.V)
+
+  if (!hasDS && !isWindUV) {
+    clearGridLayer()
+    ElMessage.warning(`网格数据格式不对：${okUrl}`)
+    console.warn("[Grid] bad data:", okUrl, data)
+    return
+  }
+
+  GLOBAL_CACHE.curGridData = data
+  renderGridLayer(data)
 }
+
 
 
 
@@ -1090,7 +1166,7 @@ function pickPreHour(row) {
   const p1 = Number(row?.pre_1h)
   if (Number.isFinite(p1) && p1 < 999998) return p1
 
-  return "--"
+  return 0
 }
 
 
@@ -1131,7 +1207,7 @@ function getPreStationData () {
       if (n >= 999998) return 0
       return n
     }
-    return "--"
+    return 0
   }
 
   const api = getStationApiPath()
@@ -1321,18 +1397,18 @@ function getTemStationData () {
       GLOBAL_CACHE.curStationData = stations
       renderStationLayer(stations)
     }
-    if (showGridLayer.value) {
-      const idwPoints = stations.filter(v => v.val !== "--")
-      const idwGrid = idwToGrid(
-        idwPoints,
-        { startLon: 105.55, startLat: 36.55, lonStep: 0.005, latStep: 0.005, lonCount: 425, latCount: 345 },
-        50,
-        Infinity,
-        { valField: "val" }
-      )
-      GLOBAL_CACHE.curGridData = idwGrid
-      renderGridLayer(idwGrid)
-    }
+    // if (showGridLayer.value) {
+    //   const idwPoints = stations.filter(v => v.val !== "--")
+    //   const idwGrid = idwToGrid(
+    //     idwPoints,
+    //     { startLon: 105.55, startLat: 36.55, lonStep: 0.005, latStep: 0.005, lonCount: 425, latCount: 345 },
+    //     50,
+    //     Infinity,
+    //     { valField: "val" }
+    //   )
+    //   GLOBAL_CACHE.curGridData = idwGrid
+    //   renderGridLayer(idwGrid)
+    // }
   }).catch(err => {
     console.error("[TEM] failed:", err?.response?.data || err)
     ElMessage.error("气温数据获取失败")
@@ -1424,7 +1500,7 @@ function getWinStationData () {
       sta.val = spd
       sta.d = dir
 
-      // u/v：只有有风速时才算（删掉你那句 contentReference... 注释）
+      // u/v：只有有风速时才算
       if (spd !== "--") {
         const s = Number(spd)
         const ang = Number(dir) * Math.PI / 180
@@ -1465,10 +1541,10 @@ function getWinStationData () {
         Infinity,
         { valField: "val" }
       )
-      if (showGridLayer.value) {
-        GLOBAL_CACHE.curGridData = idwGrid
-        renderGridLayer(idwGrid)
-      }
+      // if (showGridLayer.value) {
+      //   GLOBAL_CACHE.curGridData = idwGrid
+      //   renderGridLayer(idwGrid)
+      // }
       if (showWinFieldLayer.value) {
         GLOBAL_CACHE.curWinFieldData = FengChang
         renderWinFieldLayer(FengChang)
@@ -1478,6 +1554,108 @@ function getWinStationData () {
     console.error("[WIN] failed:", err?.response?.data || err)
     ElMessage.error("风数据获取失败")
   })
+}
+
+// 获取湿度数据
+function getRHUStationData () {
+  const fmt14 = (d) => d.format("YYYYMMDDHHmmss")
+  const norm14 = (x) => String(x ?? "").replace(/[^\d]/g, "").slice(0, 14)
+
+  const isHour = timeBarConfig.value.bar === "时"
+  const target = isHour
+    ? selectTime.value.add(timeBarPointChecked.value - 23, "hour").minute(0).second(0)
+    : selectTime.value.add(timeBarPointChecked.value - 6, "day").startOf("day")
+
+  const startKey = fmt14(target)
+  const endKey   = isHour
+    ? fmt14(target.add(1, "hour"))
+    : fmt14(target.add(1, "day").startOf("day"))
+
+  const timeRange = `${startKey},${endKey}`
+
+  const pickStationId = (r) =>
+    normSid(r?.station_id ?? r?.Station_Id_C ?? r?.sid ?? r?.stationId ?? r?.STATION_ID ?? r?.Station_Id)
+
+  const pickTime14 = (r) =>
+    norm14(r?.datetime ?? r?.Datetime ?? r?.time ?? r?.dataTime ?? r?.DataTime ?? r?.ObsTime)
+
+  function pickRHU(r) {
+    const keys = (timeBarConfig.value.bar === "时")
+      ? ["rhu", "RHU"]
+      : ["rhu_avg", "RHU_AVG", "rhu"]
+    for (const k of keys) {
+      const n = Number(r?.[k])
+      if (!Number.isFinite(n)) continue
+      if (n === 999999 || n >= 999998) return "--"
+      return n
+    }
+    return "--"
+  }
+
+  console.log("[RHU] request timeRange =", timeRange)
+
+  return axios.get(interfaces.serviceUrl + getStationApiPath(), { params: { timeRange } })
+    .then((res) => {
+      const data = res?.data
+      const rows = Array.isArray(data?.DS) ? data.DS : []
+      console.log("[RHU] DS.len =", rows.length, rows[0])
+
+      if (!rows.length) {
+        removeLayerById("current-station-layer")
+        ElMessage({ showClose: true, message: "无湿度数据", offset: document.documentElement.clientHeight / 2 })
+        return
+      }
+
+      // station_id + time 过滤
+      const bySid = new Map()
+      for (const r of rows) {
+        const sid = pickStationId(r)
+        const t14 = pickTime14(r)
+        if (!sid || t14 !== startKey) continue
+        bySid.set(sid, r)
+      }
+
+      const stations = structuredClone(ZiDongZhan)
+      for (const sta of stations) {
+        const sid = normSid(sta.sid)
+        const row = bySid.get(sid)
+        const val = row ? pickRHU(row) : "--"
+        sta.val = val
+        sta.dt = row?.datetime || ""
+        sta.warn = []
+        sta.color = getRHUThreshold(val).color
+      }
+
+      console.table(
+        stations.map(s => ({
+          sid: s.sid,
+          datetime: s.dt,
+          RHU: s.val
+        }))
+      )
+
+      GLOBAL_CACHE.curData = stations
+      if (showStationLayer.value) {
+        GLOBAL_CACHE.curStationData = stations
+        renderStationLayer(stations)
+      }
+      // if (showGridLayer.value) {
+      //   const idwPoints = stations.filter(v => v.val !== "--")
+      //   const idwGrid = idwToGrid(
+      //     idwPoints,
+      //     { startLon: 105.55, startLat: 36.55, lonStep: 0.005, latStep: 0.005, lonCount: 425, latCount: 345 },
+      //     50,
+      //     Infinity,
+      //     { valField: "val" }
+      //   )
+      //   GLOBAL_CACHE.curGridData = idwGrid
+      //   renderGridLayer(idwGrid)
+      // }
+    })
+    .catch(err => {
+      console.error("[RHU] failed:", err?.response?.data || err)
+      ElMessage.error("湿度数据获取失败")
+    })
 }
 
 // ===== 能见度（VIS）====
@@ -1554,7 +1732,7 @@ function getVisStationData () {
       const n = Number(v)
       if (Number.isFinite(n) && n < 999998) return n
     }
-    return "--"
+    return 0
   }
 
   console.log("[VIS] request timeRange =", timeRange, "targetKey =", targetKey)
@@ -1615,19 +1793,19 @@ function getVisStationData () {
       renderStationLayer(stations)
     }
 
-    // 如果你不需要格点/色斑图，这段可以直接删掉
-    if (showGridLayer.value) {
-      const idwPoints = stations.filter(v => v.val !== "--")
-      const idwGrid = idwToGrid(
-        idwPoints,
-        { startLon: 105.55, startLat: 36.55, lonStep: 0.005, latStep: 0.005, lonCount: 425, latCount: 345 },
-        50,
-        Infinity,
-        { valField: "val" }
-      )
-      GLOBAL_CACHE.curGridData = idwGrid
-      renderGridLayer(idwGrid)
-    }
+    // // 如果你不需要格点/色斑图，这段可以直接删掉
+    // if (showGridLayer.value) {
+    //   const idwPoints = stations.filter(v => v.val !== "--")
+    //   const idwGrid = idwToGrid(
+    //     idwPoints,
+    //     { startLon: 105.55, startLat: 36.55, lonStep: 0.005, latStep: 0.005, lonCount: 425, latCount: 345 },
+    //     50,
+    //     Infinity,
+    //     { valField: "val" }
+    //   )
+    //   GLOBAL_CACHE.curGridData = idwGrid
+    //   renderGridLayer(idwGrid)
+    // }
   }).catch((err) => {
     console.error("[VIS] failed:", err?.response?.data || err)
     ElMessage.error("能见度数据获取失败")
@@ -1677,7 +1855,7 @@ function getStationDataByIdAndTimeRange(station) {
 
   //关键：日资料可能给 8 位日期，补成 14 位，保证和 timeSeries 对齐
   function pickTime14(r) {
-    const t = r.iymdhm ?? r.IYMDHM ?? r.datetime ?? r.Datetime ?? r.ObsTime ?? r.time ?? r.DataTime
+    const t =  r.datetime ?? r.Datetime ?? r.ObsTime ?? r.time ?? r.DataTime?? r.iymdhm ?? r.IYMDHM
     let s = norm14(t)
     if (s.length >= 14) return s.slice(0, 14)
     if (s.length === 8) return s + "000000" // YYYYMMDD -> YYYYMMDD000000
@@ -1699,7 +1877,7 @@ function getStationDataByIdAndTimeRange(station) {
       const n = Number(v)
       if (!Number.isFinite(n)) continue
       if (n === 999999) return 0
-      if (n >= 999998) return null
+      if (n >= 999998) return 0
       return n
     }
     return null
@@ -1709,7 +1887,7 @@ function getStationDataByIdAndTimeRange(station) {
     const keys = isHour ? ["tem"] : ["tem_avg"]
     for (const k of keys) {
       const v = r?.[k]
-      if (v === 0) return 0
+      if (v === 0 || v === 999998 || v === 999999) return 0
       const n = Number(v)
       if (Number.isFinite(n) && n < 999998) return n
     }
@@ -1735,10 +1913,10 @@ function getStationDataByIdAndTimeRange(station) {
       const n = Number(r?.[k])
       if (!Number.isFinite(n)) continue
       if (n === 999999) return 0
-      if (n >= 999998) return null
+      if (n >= 999998) return 0
       return n
     }
-    return null
+    return 0
   }
 
   console.log("[StaTC] click station =", station?.sid, station?.short_name)
@@ -1762,7 +1940,7 @@ function getStationDataByIdAndTimeRange(station) {
 
       const tStr = isHour
         ? base.format("YYYY-MM-DD HH:00:00")
-        : base.add(1, "day").format("YYYY-MM-DD 00:00:00")  //日模式整体往后移 1 天
+        : base.add(0, "day").format("YYYY-MM-DD 00:00:00")  //日模式整体往后移 1 天
 
       rowByTime.set(tStr, r)
     }
@@ -1854,184 +2032,175 @@ function getStationDataByIdAndTimeRange(station) {
 
 
 // ---------- 获取所有站点的1个气象要素数据，渲染弹窗 ----------统计表部分----------
-function getStationsDataByTimeRange() {
+function getStationsDataByTimeRange () {
   const isHour = timeBarConfig.value.bar === "时"
 
-  // ① 横轴时间
+  // ① 横轴时间（显示用）
   const timeSeries = isHour
     ? Array.from({ length: 24 }, (_, i) =>
-        selectTime.value.add(i - 23, "hour").format("YYYY-MM-DD HH:00:00")
+        selectTime.value.add(i - 23, "hour").minute(0).second(0).format("YYYY-MM-DD HH:00:00")
       )
     : Array.from({ length: 7 }, (_, i) =>
-        selectTime.value.add(i - 6, "day").format("YYYY-MM-DD 00:00:00")
+        selectTime.value.add(i - 6, "day").startOf("day").format("YYYY-MM-DD 00:00:00")
       )
 
-  // 更稳：直接从字符串抽 14 位数字，不依赖 dayjs 解析
-  const to14 = (x) => String(x ?? "").replace(/[^\d]/g, "").slice(0, 14)
-  const timeSeries14 = timeSeries.map(to14)
+  // 统一为 14 位时间 key（用于对齐/索引）
+  const timeSeries14 = timeSeries.map(toTimeKey14)
   const timeSet14 = new Set(timeSeries14)
 
-  const start14 = timeSeries14[0]
-  const end14 = timeSeries14[timeSeries14.length - 1]
+  // timeRange：日资料用 [当天00, 次日00) 才能覆盖最后一天
+  const startBase = dayjs(timeSeries[0])
+  const endBase   = dayjs(timeSeries[timeSeries.length - 1])
+  const start14 = startBase.format("YYYYMMDDHHmmss")
+  const end14   = (isHour ? endBase : endBase.add(1, "day")).format("YYYYMMDDHHmmss") //关键
   const timeRange = `${start14},${end14}`
 
-  // 统一站号：去掉引号/空白（你现在 rows 里 station_id 是 '53612'）
-  const normSidKey = (x) => String(x ?? "").replace(/['"]/g, "").trim()
+  // 统一 stationId / timeKey14 / value
+  const normSidKey = (x) =>
+    String(x ?? "").replace(/['"]/g, "").trim().toUpperCase().replace(/-REG$/i, "")
 
   const pickStationId = (r) => normSidKey(
     r?.station_id ?? r?.Station_Id_C ?? r?.sid ?? r?.stationId ?? r?.STATION_ID ?? r?.Station_Id ?? r?.staCode
   )
 
-  const pickTime14 = (r) => to14(
-    r?.datetime ?? r?.Datetime ?? r?.iymdhm ?? r?.time ?? r?.dataTime ?? r?.DataTime ?? r?.ObsTime
-  )
+  const pickTime14 = (r) => {
+    const t =r?.datetime ?? r?.Datetime ?? r?.ObsTime ?? r?.time ?? r?.DataTime ?? r?.dataTime
+    return toTimeKey14(t) // 日可能是8位，这里会补齐
+  }
 
-  // 降水：9999 -> 0；缺测(>=999998，比如 999999) 也当 0；并回退到 pre_1h
-  function pickPreFix(r) {
-    const nPre = Number(r?.pre)
-    if (Number.isFinite(nPre)) {
-      if (nPre === 999999) return 0
-      if (nPre >= 999998) {
-        return 0
-      }
-      return nPre
+  // 日/时 字段映射（你其他函数里也在用这些日字段：pre_time_0820 / tem_avg / win_s_10mi_avg）
+  const pickPre = (r) => {
+    const keys = isHour
+      ? ["pre", "pre_1h", "pre_3h", "pre_6h", "pre_12h", "pre_24h"]
+      : ["pre_time_0820"] // 日字段 :contentReference[oaicite:8]{index=8}
+    for (const k of keys) {
+      const n = Number(r?.[k])
+      if (!Number.isFinite(n)) continue
+      if (n === 999999) return 0
+      if (n >= 999998) return 0
+      return n
     }
-
-    return 0
+    return null
   }
-  //气温
-  function pickTemFix(r) {
-    const n = Number(r?.tem ?? r?.TEM)
-    return Number.isFinite(n) && n < 999998 ? n : 0
+
+  const pickTem = (r) => {
+    const keys = isHour ? ["tem", "TEM"] : ["tem_avg", "TEM_AVG", "tem", "TEM"] // 日字段 tem_avg :contentReference[oaicite:9]{index=9}
+    for (const k of keys) {
+      const n = Number(r?.[k])
+      if (!Number.isFinite(n)) continue
+      if (n >= 999998) return 0
+      return n
+    }
+    return null
   }
-  //风速
-  function pickWinsFix(r) {
 
-  const n = Number(
-    r?.win_s_avg_10mi ?? r?.WIN_S_Avg_10mi
-  )
-
-  // 没查到/NaN -> 0
-  if (!Number.isFinite(n)) return 0
-
-  // 999999 或 >=999998 都当 0
-  if (n === 999999) return 0
-  if (n >= 999998) return 0
-
-  return n
-}
+  const pickWins = (r) => {
+    const keys = isHour ? ["win_s_avg_10mi", "WIN_S_Avg_10mi"] : ["win_s_10mi_avg", "win_s_avg_10mi"] // 日字段 win_s_10mi_avg :contentReference[oaicite:10]{index=10}
+    for (const k of keys) {
+      const n = Number(r?.[k])
+      if (!Number.isFinite(n)) continue
+      if (n === 999999) return 0
+      if (n >= 999998) return 0
+      return n
+    }
+    return null
+  }
 
   const getter =
-    segmentedMetElement.value === "降水" ? pickPreFix :
-    segmentedMetElement.value === "气温" ? pickTemFix :
-    segmentedMetElement.value === "风"   ? pickWinsFix :
-    0
+    segmentedMetElement.value === "降水" ? pickPre :
+    segmentedMetElement.value === "气温" ? pickTem :
+    segmentedMetElement.value === "风"   ? pickWins :
+    (() => null)
 
-  const stationId = Array.from(new Set(
-    (ZiDongZhan || []).map(s => normSidKey(s.sid)).filter(Boolean)
-  )).join(",")
-
-  console.log("[AllStaTC] request", { timeRange, stationId, met: segmentedMetElement.value })
-
-  //分组工具：4个一组
-const chunk = (arr, size) => {
-  const out = []
-  for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size))
-  return out
-}
-
-//把原来的 stationId(逗号串) 拆成数组，再按4个分批
-const stationIdArr = String(stationId ?? "")
-  .split(",")
-  .map(s => s.trim())
-  .filter(Boolean)
-
-const groups = chunk(stationIdArr, 4)
-
-Promise.all(
-  groups.map(g =>
-    axios.get(interfaces.serviceUrl + "getStationsDataByTimeRangeAndId", {
-      params: { timeRange, stationId: g.join(",") } //每次最多4个
-    })
-  )
-).then((resList) => {
-  // 合并所有批次返回的DS
-  const rows = resList.flatMap(res => Array.isArray(res?.data?.DS) ? res.data.DS : [])
-  console.log("[AllStaTC] DS.len =", rows.length, "groups =", groups.length, groups)
-
-  const norm = (x) => String(x ?? "").trim().toUpperCase().replace(/-REG$/i, "")
-  console.table(
-    rows
-      .filter(r => norm(r.station_id))
-      .slice(0, 50)
-      .map(r => ({
-        station_id: r.station_id,
-        datetime: r.datetime,
-        pre: r.pre,
-        tem: r.tem,
-        win_s_avg_10mi: r.win_s_avg_10mi
-      }))
-  )
-
-  if (!rows.length) {
-    allStaTCData.value = []
-    ElMessage({ showClose: true, message: "无数据", offset: document.documentElement.clientHeight / 2 })
-    return
+  // tationId 分组（4个一组）
+  const stationIdArr = Array.from(new Set((ZiDongZhan || []).map(s => normSidKey(s.sid)).filter(Boolean)))
+  const chunk = (arr, size) => {
+    const out = []
+    for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size))
+    return out
   }
+  const groups = chunk(stationIdArr, 4)
 
-  // 1) 建索引：sid|t14 -> value
-  const valBySidTime14 = new Map()
-  for (const r of rows) {
-    const sid = pickStationId(r)
-    const t14 = pickTime14(r)
-    if (!sid || !t14) continue
-    if (!timeSet14.has(t14)) continue
+  const api = getStationApiPath() // 时/日自动切换接口 :contentReference[oaicite:11]{index=11}
+  console.log("[AllStaTC] request", { api, timeRange, met: segmentedMetElement.value, groups: groups.length })
 
-    const v = getter ? getter(r) : null
-    if (v !== null && v !== undefined) {
-      valBySidTime14.set(`${sid}|${t14}`, v)
+  Promise.all(
+    groups.map(g =>
+      axios.get(interfaces.serviceUrl + api, {
+        params: { timeRange, stationId: g.join(",") }
+      })
+    )
+  ).then((resList) => {
+    const rows = resList.flatMap(res => Array.isArray(res?.data?.DS) ? res.data.DS : [])
+    console.log("[AllStaTC] DS.len =", rows.length)
+    console.table(rows.slice(0, 10).map(r => ({
+    sid: pickStationId(r),
+    rawTime: r.datetime ?? r.Datetime,
+
+    pre: r.pre
+  })))
+
+    if (!rows.length) {
+      allStaTCData.value = []
+      ElMessage({ showClose: true, message: "无数据", offset: document.documentElement.clientHeight / 2 })
+      return
     }
-  }
-  console.log("[AllStaTC] index.size =", valBySidTime14.size)
 
-  // 2) 回填每站
-  const stations = structuredClone(ZiDongZhan)
-  for (const sta of stations) {
-    const sid = normSidKey(sta.sid)
-    sta.dataSeries = timeSeries14.map(t14 => {
-      const v = valBySidTime14.get(`${sid}|${t14}`)
-      return (v === undefined ? null : v) // 如果你要“没查到=0”，这里改成 0
+    // 1) 建索引：sid|t14 -> value
+    const valBySidTime14 = new Map()
+    for (const r of rows) {
+      const sid = pickStationId(r)
+      const t14 = pickTime14(r)
+      if (!sid || !t14) continue
+      if (!timeSet14.has(t14)) continue
+
+      const v = getter(r)
+      if (v !== null && v !== undefined) valBySidTime14.set(`${sid}|${t14}`, v)
+    }
+
+    // 2) 回填每站（按 timeSeries14 顺序）
+    const stations = structuredClone(ZiDongZhan)
+    for (const sta of stations) {
+      const sid = normSidKey(sta.sid)
+      sta.dataSeries = timeSeries14.map(t14 => {
+        const v = valBySidTime14.get(`${sid}|${t14}`)
+        return (v === undefined ? null : v)
+      })
+    }
+
+    // 3) 输出表格：每行一个时间点，每列一个站
+    allStaTCData.value = timeSeries.map((t, i) => {
+      const obj = { time: t }
+      stations.forEach(sta => { obj[sta.short_name] = sta.dataSeries[i] })
+      return obj
     })
-  }
 
-  // 3) 输出表格
-  allStaTCData.value = timeSeries.map((t, i) => {
-    const obj = { time: t }
-    stations.forEach(sta => { obj[sta.short_name] = sta.dataSeries[i] })
-    return obj
+    // 4) 配置表头（注意这里要用 “...ZiDongZhan.map”）
+    allStaTCConfig.value = {
+      title: "",
+      toolbar: [
+        { name: "图表转换", mode: false },
+        { name: "行列转换", mode: false },
+        { name: "导出表格" }
+      ],
+      column: [
+        {
+          width: "120", prop: "time", label: "时间", axis: "x",
+          isHeader: true, disable: true,
+          format: (v) => dayjs(v).format(isHour ? "MM-DD HH:mm" : "MM-DD")
+        },
+        ...ZiDongZhan.map(v => ({ prop: v.short_name, label: v.short_name, unit: "", axis: "y", sortable: true }))
+      ],
+      export: { name: segmentedMetElement.value }
+    }
+
+    showAllStaTC.value = true
+  }).catch((err) => {
+    console.error("[AllStaTC] failed:", err?.response?.data || err)
+    ElMessage.error("统计表数据获取失败")
   })
-
-  allStaTCConfig.value = {
-    title: "",
-    toolbar: [
-      { name: "图表转换", mode: false },
-      { name: "行列转换", mode: false },
-      { name: "导出表格" }
-    ],
-    column: [
-      { width: "120", prop: "time", label: "时间", axis: "x", isHeader: true, disable: true,
-        format: (v) => dayjs(v).format(isHour ? "MM-DD HH:mm" : "MM-DD")
-      },
-      ...ZiDongZhan.map(v => ({ prop: v.short_name, label: v.short_name, unit: "", axis: "y", sortable: true }))
-    ],
-    export: { name: segmentedMetElement.value }
-  }
-  showAllStaTC.value = true
-}).catch((err) => {
-  console.error("[AllStaTC] failed:", err?.response?.data || err)
-  ElMessage.error("统计表数据获取失败")
-})
 }
+
 
 
 // ---------- 渲染站点图层 ----------
@@ -2045,6 +2214,8 @@ function renderStationLayer(data) {
         filterRange = winLegendColor.slice(winFilterRange[0], winFilterRange[1]);
     }else if (metElement.value == "能见度") {
     filterRange = visLegendColor.slice(visFilterRange[0], visFilterRange[1])
+  }else if (metElement.value == "湿度") {
+    filterRange = rhuLegendColor.slice(rhuFilterRange[0], rhuFilterRange[1])
   }
 
     var group = [];
@@ -2097,84 +2268,128 @@ function renderStationLayer(data) {
 }
 // ---------- 渲染站点弹窗 ----------
 function renderStationPopup() { }
+function funThreshold(val) {
+  const v = Number(val)
+  if (!Number.isFinite(v)) return null
+
+  // 你项目里 metElement.value 是 “降水/气温/风/能见度/湿度”等
+  const el = metElement.value
+
+  if (el === "降水") return getPreThreshold(v)
+  if (el === "气温") return getTemThreshold(v)
+  if (el === "风")   return getWinThreshold(v)
+  if (el === "能见度") return getVisThreshold(v)
+  // 默认按湿度
+  return getRHUThreshold(v)
+}
 // ---------- 渲染格点图层 ----------
 function renderGridLayer(data) {
-    let filterRange = [];
-    let funThreshold;
-    if (metElement.value == "降水") {
-        filterRange = preLegendColor.slice(preFilterRange[0], preFilterRange[1]);
-        funThreshold = getPreThreshold;
-    } else if (metElement.value == "气温") {
-        filterRange = temLegendColor.slice(temFilterRange[0], temFilterRange[1]);
-        funThreshold = getTemThreshold;
-    } else if (metElement.value == "风") {
-        filterRange = winLegendColor.slice(winFilterRange[0], winFilterRange[1]);
-        funThreshold = getWinThreshold;
-    }else if (metElement.value == "能见度") {
-    filterRange = visLegendColor.slice(visFilterRange[0], visFilterRange[1])
-    funThreshold = getVisThreshold
+  const startLon = Number(data.startLon)
+  const startLat = Number(data.startLat)
+  const lonStep  = Number(data.lonStep)
+  const latStep  = Number(data.latStep)
+
+  if (!Number.isFinite(startLon) || !Number.isFinite(startLat) ||
+      !Number.isFinite(lonStep) || !Number.isFinite(latStep)) {
+    console.warn("[Grid] start/step 不合法", data)
+    return
   }
-    let startLon = data.startLon, startLat = data.startLat,
-        lonStep = data.lonStep, latStep = data.latStep,
-        lonCount = data.lonCount, latCount = data.latCount,
-        DS = data.DS;
-    let polygon = turf.feature(ShiBianJie.features[0].geometry);
-    let features = [];
-    for (let y = 0; y < latCount; y++) {
-        for (let x = 0; x < lonCount; x++) {
-            let lon = startLon + lonStep * (x + 0.5),
-                lat = startLat + latStep * (y + 0.5),
-                val = DS[y][x];
-            // 裁剪
-            let point = turf.point([lon, lat]);
-            if (turf.booleanPointInPolygon(point, polygon)) {
-                let config = funThreshold(val);
-                // 过滤
-                let filter = filterRange.includes(config.color);
-                if (filter) {
-                    features.push({
-                        "type": "Feature",
-                        "properties": { "color": config.color },
-                        "geometry": {
-                            "type": "Polygon", "coordinates": [
-                                [
-                                    [startLon + lonStep * x, startLat + latStep * y],
-                                    [startLon + lonStep * (x + 1), startLat + latStep * y],
-                                    [startLon + lonStep * (x + 1), startLat + latStep * (y + 1)],
-                                    [startLon + lonStep * x, startLat + latStep * (y + 1)],
-                                    [startLon + lonStep * x, startLat + latStep * y],
-                                ]
-                            ]
-                        }
-                    })
-                }
-            }
+
+  const isWindUV = metElement.value === "风" && Array.isArray(data.U) && Array.isArray(data.V)
+
+  let latCount0 = 0, lonCount0 = 0
+  let getScalar = null
+  let thresholdFn = null
+
+  if (isWindUV) {
+    let U = data.U, V = data.V
+    if (Array.isArray(U[0]) && Array.isArray(U[0][0])) U = U[0] || []
+    if (Array.isArray(V[0]) && Array.isArray(V[0][0])) V = V[0] || []
+
+    latCount0 = Number(data.latCount) || U.length
+    lonCount0 = Number(data.lonCount) || (U[0]?.length ?? 0)
+
+    const latCount = Math.min(latCount0, U.length, V.length)
+    const lonCount = Math.min(lonCount0, U[0]?.length ?? 0, V[0]?.length ?? 0)
+
+    getScalar = (y, x) => {
+      const u = Number(U?.[y]?.[x])
+      const v = Number(V?.[y]?.[x])
+      if (!Number.isFinite(u) || !Number.isFinite(v)) return null
+      return Math.hypot(u, v) //风速
+    }
+    thresholdFn = (spd) => getWinThreshold(spd)
+
+    latCount0 = latCount
+    lonCount0 = lonCount
+  } else {
+    let DS = Array.isArray(data.DS) ? data.DS : []
+    // 兼容 3D: DS[step][lat][lon]
+    if (Array.isArray(DS[0]) && Array.isArray(DS[0][0])) DS = DS[0] || []
+
+    latCount0 = Number(data.latCount) || DS.length
+    lonCount0 = Number(data.lonCount) || (DS[0]?.length ?? 0)
+
+    const latCount = Math.min(latCount0, DS.length)
+    const lonCount = Math.min(lonCount0, DS[0]?.length ?? 0)
+
+    getScalar = (y, x) => {
+      const val = Number(DS?.[y]?.[x])
+      return Number.isFinite(val) ? val : null
+    }
+    thresholdFn = (v) => funThreshold(v)
+
+    latCount0 = latCount
+    lonCount0 = lonCount
+  }
+
+  const latCount = latCount0
+  const lonCount = lonCount0
+  if (!latCount || !lonCount) return
+
+  const features = []
+  for (let y = 0; y < latCount; y++) {
+    for (let x = 0; x < lonCount; x++) {
+      const val = getScalar(y, x)
+      if (val == null) continue
+      const cfg = thresholdFn(val)
+      if (!cfg) continue
+
+      const lon0 = startLon + lonStep * x
+      const lon1 = startLon + lonStep * (x + 1)
+      const lat0 = startLat + latStep * y
+      const lat1 = startLat + latStep * (y + 1)
+
+      const west  = Math.min(lon0, lon1)
+      const east  = Math.max(lon0, lon1)
+      const south = Math.min(lat0, lat1)
+      const north = Math.max(lat0, lat1)
+
+      features.push({
+        type: "Feature",
+        properties: { color: cfg.color },
+        geometry: {
+          type: "Polygon",
+          coordinates: [[[west,south],[east,south],[east,north],[west,north],[west,south]]]
         }
-    };
-    removeLayerById("current-grid-layer");
-    GLOBAL_CACHE["current-grid-layer"] = L.glify.shapes({
-        map: map,
-        data: { "type": "FeatureCollection", "features": features },
-        // border: true,
-        color: (index, feature) => {
-            let hexColor = feature.properties.color.replace("#", "");
-            let num = parseInt(hexColor, 16);
-            let r = (num >> 16) & 255;
-            let g = (num >> 8) & 255;
-            let b = num & 255;
-            return { r: r / 255, g: g / 255, b: b / 255, a: 0.8 }
-        },
-        // click: (e, feature) => {
-        //     console.log(e, feature)
-        // },
-        // hover: (e, feature) => {
-        //     console.log(e, feature)
-        // },
-        // hoverOff: (e, feature) => {
-        //     console.log(e, feature)
-        // }
-    });
+      })
+    }
+  }
+
+  removeLayerById("current-grid-layer")
+  GLOBAL_CACHE["current-grid-layer"] = L.glify.shapes({
+    map,
+    data: { type: "FeatureCollection", features },
+    color: (i, f) => {
+      const hex = String(f.properties.color || "#000000").replace("#", "")
+      const num = parseInt(hex, 16)
+      return { r: ((num>>16)&255)/255, g: ((num>>8)&255)/255, b: (num&255)/255, a: 0.8 }
+    }
+  })
 }
+
+
+
 // ---------- 渲染风场图层 ----------
 function renderWinFieldLayer(data) {
     console.log(data)
@@ -2234,6 +2449,17 @@ function getIcon(color, speed, direction) {
                     <path fill="${color}" transform-origin="center" transform="translate(0,-115)  scale(0.53)"
                         d="M768 20.48c79.552 0 144.064 63.424 144.064 141.632v404.096a239.296 239.296 0 0 1 89.728 270.144C968.96 936 874.56 1003.52 768 1003.52s-200.96-67.52-233.792-167.168 3.392-208.768 89.728-270.144V162.112C623.936 83.904 688.448 20.48 768 20.48z m-0.064 61.44c-43.648 0-79.04 33.984-79.04 75.904v443.584l-28.992 20.224c-64.704 45.056-91.84 124.928-67.2 197.888 24.64 72.96 95.36 122.432 175.296 122.56 79.936-0.064 150.784-49.536 175.424-122.56s-2.56-152.96-67.328-197.952l-28.992-20.224v-443.52c-0.064-41.92-35.52-75.904-79.168-75.904z m1.344 378.88a32 32 0 0 1 32 32v146.304a133.12 133.12 0 1 1-64.064-0.64L737.28 492.8a32 32 0 0 1 32-32z m-502.208 265.408a30.784 30.784 0 0 1 0 43.456l-72.384 72.384a30.784 30.784 0 0 1-43.456-43.456l72.384-72.384a30.784 30.784 0 0 1 43.456 0zM768 696.32a71.68 71.68 0 1 0-0.064 143.296A71.68 71.68 0 0 0 768 696.32zM491.52 215.04c15.488 0 30.912 1.216 46.016 3.648a30.656 30.656 0 1 1-9.792 60.608 225.28 225.28 0 0 0-90.496 441.152 30.784 30.784 0 0 1-14.72 59.648A286.72 286.72 0 0 1 491.52 215.04z m-348.16 256a30.72 30.72 0 0 1 0 61.44H40.96a30.72 30.72 0 0 1 0-61.44h102.4z m51.264-309.568l72.384 72.384a30.784 30.784 0 0 1-43.456 43.456l-72.32-72.448a30.656 30.656 0 1 1 43.392-43.392zM491.52 20.48a30.72 30.72 0 0 1 30.72 30.72v102.4a30.72 30.72 0 0 1-61.44 0V51.2a30.72 30.72 0 0 1 30.72-30.72z"
                     ></path>
+                </svg>`;
+    } else if (metElement.value == "湿度") {
+        icon = `<svg viewBox="0 0 1024 1024" fill="${color}" color="${color}">
+                    <path fill="currentColor" stroke="currentColor" stroke-width="60" stroke-linejoin="round"
+                        d="M 225.85 684.98 L 512 994 L 798.15 684.98 A 390 390 0 0 1 225.85 684.98 A 390 390 0 1 1 798.15 684.98 A 390 390 0 1 0 225.85 684.98 z"></path>
+                    <circle cx="512" cy="420" r="360" fill="#000"/>
+                    <g transform-origin="center" transform="translate(0,-105) scale(0.6)">
+                        <path fill="${color}" d="M512 64c-176 232-264 380-264 528 0 160 132 292 296 292s296-132 296-292C840 444 752 296 512 64zM392 616c0-66 50-120 112-120s112 54 112 120-50 120-112 120-112-54-112-120z"/>
+                        <path fill="#000" d="M464 600a24 24 0 1 1 96 0 24 24 0 0 1-96 0z"/>
+                        <path fill="${color}" opacity="0.5" d="M360 700c26 46 78 76 136 76 86 0 156-64 156-144 0-20-4-40-12-58 18 28 28 60 28 94 0 110-92 200-206 200-70 0-132-34-168-86 18 12 40 18 66 18z"/>
+                    </g>
                 </svg>`;
     } else if (metElement.value == "能见度") {
         icon = `<svg viewBox="0 0 1024 1024" fill="${color}" color="${color}">

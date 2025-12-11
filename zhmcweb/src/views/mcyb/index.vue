@@ -667,7 +667,7 @@ let refmap = shallowRef(null),
     };
 
 let selectTime = ref(dayjs().set("hour", 8).set("minute", 0).set("second", 0));// 时间条上的时间
-selectTime.value = dayjs("2025-05-10 08:00:00")
+selectTime.value = dayjs("2025-12-05 17:00:00")
 let timeBarPointChecked = ref(0),      // 时间条上被选中的时间点，起始为 0
     timeBarConfig = ref({               // 时间条配置
         bar: "时",

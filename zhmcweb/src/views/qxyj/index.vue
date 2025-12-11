@@ -552,6 +552,13 @@ onMounted(() => {
 function getGridData() {
     let key = selectTime.value.format("YYYYMMDDHH0000");
     let stations = structuredClone(ZiDongZhan);
+    // 每个站点补齐默认序列，避免 undefined[0]
+    const points = timeBarConfig.points || 72;
+    stations.forEach(sta => {
+      if (!Array.isArray(sta.pre)) sta.pre = Array(points).fill(null);
+      if (!Array.isArray(sta.win)) sta.win = Array(points).fill(null);
+      if (!Array.isArray(sta.tem)) sta.tem = Array(points).fill(null);
+    });
     stations[0].tem = [35.1, 37.6, 36.5, 37, 32.2, 41.9, 34.5, 28.1, 35.9, 32, 32.1, 28.5, 41.3, 38.1, 38.9, 28.5, 38.1, 34.5, 39, 28.3, 37.8, 29, 30.4, 30.7, 40.3, 30.8, 35, 36.2, 37.7, 31, 39.6, 34.9, 38.3, 30.4, 40.9, 30.2, 41.4, 36.2, 32.6, 36.3, 34.3, 30.6, 39.6, 32.1, 28.4, 30.8, 38.2, 32.7, 38.3, 41.6, 30.1, 31.2, 38.1, 28.2, 30.9, 41.8, 30.8, 29.2, 29.5, 35.5, 37.2, 29.8, 39.3, 31.6, 35.6, 28.5, 34.2, 33.1, 33.2, 40.8, 40.8, 31];
     stations[0].win = [10.3, 13.2, 3.4, 2, 9, 7.3, 17.8, 8.9, 12.2, 14.6, 10.9, 15.4, 5.6, 16.6, 14.3, 7.9, 0.4, 5, 10.6, 16.7, 17, 9.8, 12.7, 13.7, 4.7, 10.5, 0.1, 3, 5.2, 0.3, 7.2, 15.2, 8.6, 15.3, 15.4, 6, 16.9, 1.8, 7.7, 10.8, 2.8, 6.1, 7.2, 5.8, 11.9, 10.3, 12, 10, 7.5, 0.2, 11.5, 1.7, 16.8, 3.1, 19.4, 3.4, 14.2, 12.3, 1.9, 9.5, 0.9, 13.1, 9.3, 10.5, 10.8, 7.4, 16.4, 13, 6, 15.1, 4.6, 0.9];
     stations[0].pre = [13.7, 14.9, 12.6, 9.8, 4.5, 6.7, 16.5, 8.8, 7.2, 11.2, 16.2, 11.9, 8, 16.1, 18.7, 19.2, 14.6, 18.5, 5.3, 17.3, 4.5, 8, 12.5, 18.8, 3.5, 5.7, 4, 15.9, 6.2, 13.9, 17.6, 7.7, 3.6, 17.1, 16.7, 19.6, 20, 4, 10.9, 7.1, 13.5, 8.7, 13.2, 10.3, 10.6, 17.3, 5.9, 14.2, 14.7, 19.5, 13.3, 10.9, 10, 17.5, 14.1, 6.8, 10.6, 7.1, 12.1, 5.4, 19.9, 15.3, 8.6, 8.5, 7.6, 12.7, 16.5, 19.1, 19.3, 5.5, 14.6, 10.3];
@@ -576,9 +583,11 @@ function renderStation(stations) {
     var group = [];
     for (let i = 0, len = stations.length; i < len; i++) {
         let item = stations[i];
-        let preVal = item.pre[timeBarPointChecked.value],
-            winVal = item.win[timeBarPointChecked.value],
-            temVal = item.tem[timeBarPointChecked.value];
+        const idx = Math.max(0, timeBarPointChecked.value ?? 0);
+
+        let preVal = item.pre?.[idx];
+        let winVal = item.win?.[idx];
+        let temVal = item.tem?.[idx];
         let preIcon = preVal > 35 ? "暴雨红色" : preVal > 30 ? "暴雨橙色" : preVal > 25 ? "暴雨黄色" : preVal > 15 ? "暴雨蓝色" : null,
             winIcon = winVal > 25 ? "大风红色" : winVal > 20 ? "大风橙色" : winVal > 15 ? "大风黄色" : winVal > 10 ? "大风蓝色" : null,
             htemIcon = temVal > 40 ? "高温红色" : temVal > 37 ? "高温橙色" : temVal > 35 ? "高温黄色" : null;
